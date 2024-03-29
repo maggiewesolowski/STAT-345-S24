@@ -1,0 +1,187 @@
+---
+title: "Shot Positions Report"
+font: 12pt
+date: "3/28/2024"
+author: "Maggie Wesolowski"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+library(devtools)
+#devtools::install_github("abresler/nbastatR")
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+#If warning messages appear, it won't be shown on knitted document.
+```
+
+## Shot Locations Graphic
+```{r echo=FALSE, results= FALSE}
+library(nbastatR) #data to analyze NBA statistics 
+library(dplyr) #provides a set of functions for performing common data manipulation tasks (ex: filtering rows, binning tables, summarizing data)
+library(ggplot2) #used for creating graphics
+library(pacman) #provides a convenient way to load and install multiple packages, simplifies workflow
+library(grid) #allows for the use of annotation_custom(rasterGrob())
+
+#gets data for shot data for Boston Celtics over 6 years(2017-2022)
+celtics_shots2017 = teams_shots( teams = "Boston Celtics", seasons = 2017)
+celtics_shots2018 = teams_shots( teams = "Boston Celtics", seasons = 2018)
+celtics_shots2019 = teams_shots( teams = "Boston Celtics", seasons = 2019)
+celtics_shots2020 = teams_shots( teams = "Boston Celtics", seasons = 2020)
+celtics_shots2021 = teams_shots( teams = "Boston Celtics", seasons = 2021)
+celtics_shots2022 = teams_shots( teams = "Boston Celtics", seasons = 2022)
+
+#joins data together
+celtics_shots = bind_rows(celtics_shots2017, celtics_shots2018, celtics_shots2019, celtics_shots2020, celtics_shots2021, celtics_shots2022)
+
+#creating graph
+#reads in basketball court image that data points will be layered over
+image <- png::readPNG("basketball court.png")
+
+#creates graph using the dataset from the dataframe celtics_shots
+#aes() tells ggplot what/how variables should be mapped to the graph
+#specifically scales the points so that it fits the basketball court image correctly
+a = ggplot(data = celtics_shots, aes(locationX*1.2, locationY-40)) 
+
+#creates title of graphic and x and y axis labels
+a + ggtitle("Boston Celtics Shot Poistions From 2017-2022") + xlab("Location X")+ ylab("Location Y") +
+  
+#annotation_custom adds custom annotations to plot(in this case a basketball court image)
+#rasterGrob() adds images such as PNG image
+#width() and height() are the dimensions of the image
+#unit(1, "npc") means that the image will occupy the entire plot area
+#xmin, ymin and xmax, ymax specifies the coordinates of where the annotation should be and -Inf and Inf indicate the annotation should cover the entire plot
+#this needs to go before adding points to plot so that the image is underneath the points
+  annotation_custom(rasterGrob(image, width = unit(1, "npc"), height = unit(1, "npc")), xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf) + 
+
+#geom_point adds data points of the coordinates of the shot positions
+#color = factor() will color the made/missed shots, specifying alpha makes the points transparent so you can still see the image behind the points better and because many points may get laid on top of each other
+  geom_point(aes(color = factor(typeEvent)), alpha = 0.1) + 
+
+#colors what data points are made/missed shot with desired colors and labels legend title
+  scale_color_manual(values = c("darkgreen", "gold"), name = "Shots Made/Missed") + 
+
+#sets coordinate limits for the plot
+  coord_cartesian (xlim = c(-300, 300), ylim = c(0,430)) + 
+
+#creates separate plots for each year (~ indicates which variable to be used)
+  facet_wrap(~yearSeason) + 
+
+#removes all default theme elements, such as setting plot background to be transparent(helpful if any part of the plot background was showing underneath the image) and gets rid of axis tick marks 
+  theme_void() + 
+
+#places the legend at the bottom (the default placement is on the right side of the graph) 
+#This was done intentionally so that the graphs would appear bigger and easier to read
+  theme(legend.position = "bottom")
+```
+
+## Brief Summary of Results
+
+  - There is an even distribution of shots attempted on both the left and right side of the court.
+   - The majority of shots attempted are around the 3 point line and below the free throw line inside the lane line (in the paint). 
+  - The proportion of made to missed shots around the 3 point line is seemingly even. 
+  - Mainly, corner 3-pointers were missed more than any other spot on the 3-point line. 
+  - Generally, short corner shots were made more than missed. 
+  - Any shot attempted behind the half court line was missed, with the exception of one made in 2020.
+  - Half court shots are rarely attempted. 
+  - In  2022, a greater amount of shots were made near the hoop, around the low post or block area, than in any other year. And right corner shots were made more than in any other year. 
+  - In 2021, more shots were missed than made at the top of the key compared to any other year. 
+  - In 2019, longer distanced 3-pointers were made more than missed compared to any other year. And more shots were taken from the right elbow. 
+  
+## Detailed Summary of Results
+
+  - The appeared even distribution of shots attempted on both the left and right side of the court suggests a balanced offensive in terms of court positioning. 
+  - The majority of shots attempted being around the 3-point suggests that the players emphasis on perimeter shooting to score more points.
+  - The majority of shots attempted also being in the paint suggests the team utilizes the 3-point line to space the floor to create driving lines by stretching the defense. By getting the ball in the paint they can also pass the ball back out to the 3-point line for an uncontested 3-pointer.
+  - The proportion of made to missed shots around the 3-point line being relatively even suggests that a large portion of shots are attempted from this area and it is apart of the teams offensive strategy to utilize the 3-point line. The mixed success rate of this shot distance, not always being successful at the 3-point line could be due to factors such as defensive pressure affecting shot accuracy and a player's proficiency of shooting at this distance. Despite not always being successful at this distance but continuing to shoot from this area, reflects the team's strategic balance between the risk and reward of this 3-point scoring opportunity. 
+  - Corner 3-point shots were attempted frequently despite this being the most difficult shot to make for the team. This suggests that players like to shoot here and is usually an open area when a zone defense is played and good spot when swinging the ball quickly to the other side of the court. However, since this area is where the sideline and baseline meet it is a good area for the defense to trap the ball making it harder for to get an accurate shot up. 
+  - Shot corner shots were made more than missed indicates that the team is effective in scoring opportunities from this area. 
+  - Half court shots were always missed. This supports why we see the half court shots are rarely attempted. Since half court shots have a low likelihood of success they were only attempted out of desperation at the end of quarters or games. 
+  - The increased amount of shots made near the hoop, particularly around the low post or block area, in 2022 suggests a strategic emphasis on interior scoring during that year. It can also indicate specific offensive plays or a certain player's tendency to shoot from that area. 
+  - More shots were missed than made at the top of the key in 2021 suggests a potential decrease in shooting efficiency from that area compared to other years.
+  - Longer distanced 3-pointers were made more than missed in 2019 compared to other years suggests an increase in shooting proficiency from long range during that year. This can also suggest that the team had stronger shooters from longer distances than in any other. 
+  - Increase in shots taken from the right elbow in 2019 may indicate a strategic emphasis on exploiting scoring opportunities from that area of the court.
+  
+
+```{r include=FALSE}
+#calculates the total number of shots that were made by filtering the dataframe to include only rows where there was a made shot and then counts the number of rows
+total_shots_made = celtics_shots %>% filter(typeEvent == "Made Shot") %>% nrow()
+
+#filters rows where the shot was made and the distance it was shot at was greater than or equal to 24ft (chose greater than or )
+where_shot = celtics_shots %>% filter(typeEvent == "Made Shot" & distanceShot > 24)
+
+#creates a frequency table, counting the number of times there was a made shot at each distance
+distance_counts = table(where_shot$distanceShot)
+
+#calculates the percentage of made shots from each distance and rounds answer
+round((distance_counts/total_shots_made) *100, digits = 2)
+
+#expected value calculation
+#values of each made shot that was at a distance greater than 24ft
+values <- c(25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 41)
+
+#probabilities corresponding to each value (got values from when the table printed out)
+probabilities <- c(8.94, 6.18, 2.73, 0.93, 0.28, 0.14, 0.06, 0.02, 0.01, 0.02, 0.01, 0.01)
+
+#calculates the expected value
+expected_value <- weighted.mean(values, probabilities)
+
+#prints the expected value
+round(expected_value, digits = 2) #expected value = 25.89
+
+#finding the player that made the most shots at 26 feet (close to expected value of 25.9 feet)
+#filters the dataset for made shots at 26 feet
+shots_26ft <- celtics_shots %>% filter(distanceShot == 26)
+
+#counts the number of made shots at 26 feet by each player
+#group_by() groups the data by the name of the player 
+#summarise() calculates summary statistics for each group 
+#total_shots = n() calculates the total number of shots made by each player
+shots_count <- shots_26ft %>%  group_by(namePlayer) %>% summarise(total_shots = n())
+
+#finds the player who made the most shots at that distance
+most_shots_player <- shots_count %>% filter(total_shots == max(total_shots))
+#gets name of player
+name_of_player = most_shots_player$namePlayer
+#how many shots made at 26ft
+players_total_shots = most_shots_player$total_shots
+
+
+#to find the percent of increase in total points for that player if 4 point line was 26ft
+
+#filters the dataset for shots made by that player
+player_shots <- celtics_shots %>%
+  filter(namePlayer == name_of_player)
+
+#filters the dataset for made 3-pointers
+made_3pointers <- player_shots %>%
+  filter(typeEvent == "Made Shot" & typeShot == "3PT Field Goal")
+
+#counts the number of made 3-pointers
+num_made_3pointers <- nrow(made_3pointers)
+
+#filters the dataset for made 2-pointers
+made_2pointers <- player_shots %>%
+  filter(typeEvent == "Made Shot" & typeShot == "2PT Field Goal")
+
+#counts the number of made 2-pointers
+num_made_2pointers <- nrow(made_2pointers)
+
+#calculates current total points
+total_points = (num_made_3pointers*3) + (num_made_2pointers*2)
+#calculates new total points given 4-point line
+actual_3pointers = num_made_3pointers - players_total_shots
+new_total_points = (players_total_shots*4)+(actual_3pointers*3)+(num_made_2pointers*2)
+#percentage increase
+percentage_increase = ((new_total_points - total_points) / total_points) * 100
+round(percentage_increase, digits = 2)
+```
+
+## 4-point Shot
+If the NBA were to include a 4-point shot, the ideal location of a 4-point arc would be at 26 feet with the same arc shape as the 3-point line. It is ideal to have it be the same shape as the 3-point line because based of the graphical data because it ensures that the line is a consistent distance from the basket at all points along the line. This is the ideal length from the basket because the expected value from weighting all the average made shots from distances greater than 24ft(because the 3-point line is approximately 23.9 feet) was 25.89ft. So the expected distance a player would shoot from that is beyond the 3-point line is approximately 26ft. If the 4-point was drawn any further players would not attempt to shot there because the probability that they would make the shot is slim. Therefore, there would be no benefit to having a 4-point line if almost no players would shoot from the distance it is at. Having the 4-point line at this distance would be beneficial to certain player's point total. For instance, the player that made the most 3-pointers from that distance was Jayson Tatum, making 499 shots. His total points would increase by 7.94% if the 4-point line was incorporated. 
+  
+  
+  
+  
+
+
